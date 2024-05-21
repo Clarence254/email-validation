@@ -18,7 +18,11 @@ def is_valid_email(email):
     # Check if "@" is present in the email
     if "@" not in email:
         return False
-
+    
+    # Check if the email contains more than one '@' character
+    elif email.count('@') > 1:
+        return False
+    
     local_part, domain_part = email.split('@')
 
     # Check for consecutive dots, hyphens, or underscores in the local part
@@ -98,10 +102,21 @@ def verify_email(email):
     # Split the email address into username and domain parts
     domain = email.split('@')[1]
 
-    # Check the domain MX records
+    # Create a custom resolver object with adjusted timeout and lifetime
+    resolver = dns.resolver.Resolver()
+    resolver.timeout = 1 # Timeout in seconds
+    resolver.lifetime = 1 # Lifetime in seconds
+
+   # Check the domain MX records
     try:
-        mx_records = dns.resolver.resolve(domain, 'MX')
+        mx_records = resolver.resolve(domain, 'MX')
+    except dns.resolver.NoNameservers:
+        print(f"No nameservers could be found for {domain}. Skipping email verification.")
+        return False
     except dns.resolver.NoAnswer:
+        return False
+    except dns.resolver.LifetimeTimeout:
+        print(f"DNS query for {domain} timed out. Skipping email verification.")
         return False
 
     # Connect to the SMTP server and perform the email verification
